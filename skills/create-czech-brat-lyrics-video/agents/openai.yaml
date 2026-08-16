@@ -1,0 +1,14 @@
+interface:
+  display_name: České Brat Lyrics Video
+  short_description: Vytváří Brat lyrics videa s českým TTS
+  default_prompt: Použij $create-czech-brat-lyrics-video a vytvoř čtvercové Brat lyrics
+    video s českým TTS z mého textu.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true
