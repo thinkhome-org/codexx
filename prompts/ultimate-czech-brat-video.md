@@ -23,23 +23,73 @@ Podporovaný stručný formát:
 Téma: [téma videa]
 Hlas: [Vlasta | Antonín | vlastní Edge TTS ID | offline female | offline male | espeak | espeak:cs | say:<voice>]
 Pozadí: [white | brat-green | #RRGGBB]
+Dělení: [legacy | sentence | clause | custom]
+Max slov: [volitelné číslo; legacy default 6, clause doporučeno 10]
 Délka: [krátká | střední | dlouhá | vlastní požadavek]
 Doplňující pokyny: [volitelné]
 ```
 
-Uživatel může napsat jen `Téma: ...`. Pokud téma chybí, zeptej se pouze na téma. Pokud chybí hlas nebo pozadí, polož jednu společnou krátkou otázku na obě volby, jak vyžaduje video skill; nikdy automaticky nevybírej Antonína ani bílé pozadí. Pokud uživatel výslovně napíše, že volbu nechává na tobě, vyber vhodnou kombinaci sám.
+Uživatel může napsat jen `Téma: ...`.
 
-### Význam hlasových voleb a fallback
+- Pokud téma chybí, zeptej se pouze na téma.
+- Pokud chybí hlas nebo pozadí, polož jednu společnou krátkou otázku na chybějící volby.
+- Pokud chybí `Dělení`, doporuč a použij **legacy / 6 slov** jako výchozí režim, ale v otázce stručně ukaž i `sentence` a `clause`.
+- Nikdy automaticky nevybírej Antonína ani bílé pozadí, pokud uživatel neřekl, že volbu nechává na tobě.
 
-- `Vlasta` = preferuj `cs-CZ-VlastaNeural` přes Edge TTS.
-- `Antonín` = preferuj `cs-CZ-AntoninNeural` přes Edge TTS.
-- vlastní Edge TTS ID = použij přesně uvedený hlas, pokud je dosažitelný.
-- `offline female` = preferuj lokální český ženský hlas, typicky macOS `say` Zuzana/Iveta; pokud není, použij český eSpeak.
-- `offline male` = preferuj lokální český mužský hlas, typicky macOS `say` Tomas; pokud není, použij český eSpeak.
-- `espeak` nebo `espeak:cs` = explicitně použij český eSpeak/eSpeak NG.
-- `say:<voice>` = explicitně použij konkrétní lokální macOS hlas.
+## Povinné vysvětlení hlasových možností
 
-Když uživatel zvolí Vlastu, Antonína nebo vlastní Edge hlas a online Edge TTS selže kvůli síti, TLS, službě nebo nedostupné instalaci, **nezastavuj výrobu videa**, pokud existuje český lokální TTS backend. Použij fallback pořadí definované ve video skillu: Edge → macOS `say` → eSpeak. U fallbacku vždy přiznej skutečně použitý backend/hlas; nikdy offline hlas nevydávej za Vlastu či Antonína.
+Když se uživatele ptáš na hlas, ukaž mu nejen názvy, ale i praktickou kompatibilitu:
+
+- **Vlasta** — `cs-CZ-VlastaNeural`; velmi dobrá přirozená čeština, ale potřebuje funkční Edge TTS a síť.
+- **Antonín** — `cs-CZ-AntoninNeural`; stejné technické požadavky jako Vlasta.
+- **Custom Edge voice** — stejná kvalita/omezení podle konkrétního Edge hlasu.
+- **Offline female / male** — lokální český systémový hlas; nejlépe funguje na macOS, pokud je nainstalován.
+- **eSpeak Czech** — nižší/robotická kvalita, ale obvykle nejbezpečnější plně offline fallback v Linux-style prostředí, pokud je binárka dostupná.
+
+Pro **Codex Online Sessions** vysvětli:
+
+1. Vlasta/Antonín = nejlepší kvalita, ale mohou selhat při blokovaném outbound network/TLS nebo nemožnosti instalace `edge-tts`.
+2. eSpeak = nejvyšší pravděpodobnost fungování bez sítě na Linux-style session, pokud je `espeak-ng`/`espeak` nainstalován.
+3. macOS `say` = relevantní hlavně pro lokální Codex na macOS, ne pro běžný hosted Linux session.
+4. Přesnou dostupnost nikdy negarantuj před kontrolou runtime.
+
+Výběr hlasu a backend jsou dvě různé věci. Uživatelova volba zůstává zachovaná jako `requested_voice`; backend se volí až podle runtime. Když Edge hlas selže, pokračuj lokálním českým backendem, pokud existuje, a vždy přiznej `requested_voice`, `tts_backend` a `actual_voice`.
+
+## Povinné vysvětlení dělení textu
+
+Uživatel si může vybrat, kdy se aktivní textový blok vymaže/resetuje:
+
+### `legacy` — doporučený default
+
+Původní chování generátoru:
+
+- reset na `. ! ? ; :`;
+- reset na čárce, když už blok má alespoň přibližně 4 slova;
+- jinak hard reset po nastaveném počtu slov;
+- default **6 slov**.
+
+Výhoda: velký text, rychlý rytmus, nejblíže původnímu Brat videu.
+
+### `sentence`
+
+- blok trvá až do konce celé věty (`. ! ? …`);
+- žádné dělení podle počtu slov;
+- výhoda: gramaticky celistvé věty;
+- nevýhoda: dlouhé věty mohou vyrobit velmi malý text.
+
+### `clause`
+
+- konec věty vždy resetuje;
+- dlouhý blok lze ukončit pouze na bezpečné čárce, středníku nebo dvojtečce po prahovém počtu slov;
+- doporučený threshold **10 slov** (uživatel může změnit).
+
+Výhoda: kompromis mezi velkým textem a přirozeným členěním.
+
+### `custom`
+
+Uživatel může výslovně určit vlastní threshold a povolenou interpunkci.
+
+Pokud uživatel režim neřeší, použij **legacy + 6 slov** a jednou stručně uveď, že jde o doporučený default.
 
 ## Povinný výrobní řetězec
 
@@ -86,6 +136,14 @@ Nežádej uživatele o schválení meziverze, pokud o něj výslovně nepožáda
 
 Použij `$create-czech-brat-lyrics-video` a jeho přiložené generátory. Nezastavuj se u návodu, ukázkového příkazu, návrhu scénáře ani tvrzení, že video „lze vytvořit“. Skutečně vytvoř výsledný MP4 soubor.
 
+Mapování podle dělení:
+
+- `legacy` + Edge → `create_brat_lyrics_video_legacy.py` (default `--max-words 6`)
+- `legacy` + offline → `create_brat_lyrics_video_offline_legacy.py`
+- `sentence` + Edge → `create_brat_lyrics_video.py --max-words 0`
+- `sentence` + offline → `create_brat_lyrics_video_offline.py --max-words 0`
+- `clause` + Edge/offline → normální generátor s `--max-words N`, default 10
+
 Preferuj neural Edge generátor, pokud je dostupný. Pokud Edge TTS není dosažitelný, automaticky použij offline fallback generátor podle video skillu. Samotný výpadek sítě není důvodem odevzdat pouze scénář.
 
 Souhlas uživatele s použitím tohoto master promptu zahrnuje použití potřebných externích služeb, TTS, API a nástrojů nutných k vytvoření videa v rozsahu tohoto úkolu. Nezahrnuje veřejné publikování videa ani jiné nesouvisející externí akce.
@@ -99,7 +157,7 @@ Před odevzdáním ověř všechna pravidla video skillu a zejména:
 - u Edge TTS ověř skutečné WordBoundary časování;
 - u offline TTS přiznej `timing_mode: estimated-from-offline-audio` a ověř přesné pokrytí zdrojových tokenů;
 - žádné slovo nezmizelo, nebylo zdvojeno ani přesunuto;
-- věta se bez výslovného důvodu nepřerušila uprostřed;
+- hranice textových bloků přesně odpovídají zvolenému `Dělení`;
 - obraz má 1080 × 1080, 30 fps, H.264 video a AAC audio;
 - pozadí odpovídá zvolené variantě;
 - reportovaný hlas/backend odpovídá tomu, co bylo skutečně použito;
@@ -113,7 +171,7 @@ Odevzdej:
 
 1. odkaz ke stažení hotového MP4;
 2. přesný finální scénář použitý ve videu;
-3. jednu krátkou řádku s požadovaným hlasem, skutečně použitým TTS backendem/hlasem, pozadím, režimem časování a výsledkem kontroly slov.
+3. jednu krátkou řádku s požadovaným hlasem, skutečně použitým TTS backendem/hlasem, pozadím, režimem dělení, thresholdem, režimem časování a výsledkem kontroly slov.
 
 Nevypisuj interní mezikroky, pracovní draft ani dlouhé vysvětlování.
 
@@ -123,14 +181,25 @@ Nevypisuj interní mezikroky, pracovní draft ani dlouhé vysvětlování.
 Téma: destilovaná voda
 Hlas: Vlasta
 Pozadí: brat-green
+Dělení: legacy
 Délka: dlouhá
 ```
 
-Explicitní offline varianta:
+Celá věta:
+
+```text
+Téma: destilovaná voda
+Hlas: Vlasta
+Pozadí: white
+Dělení: sentence
+```
+
+Kompromis:
 
 ```text
 Téma: destilovaná voda
 Hlas: espeak:cs
 Pozadí: white
-Délka: dlouhá
+Dělení: clause
+Max slov: 10
 ```
