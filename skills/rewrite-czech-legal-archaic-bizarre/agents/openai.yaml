@@ -1,8 +1,9 @@
 interface:
-  display_name: Humorný archaický bizár
-  short_description: Vtipný sebestředný archaický přepis
-  default_prompt: Použij $rewrite-czech-legal-archaic-bizarre a přepiš tento text
-    jako vtipný, sebestředný a popichující archaický internetový bizár.
+  display_name: Neskrocený archaický bizár
+  short_description: Agresivně vtipný úředně-archaický přepis
+  default_prompt: Použij $rewrite-czech-legal-archaic-bizarre a zmutuj tento text
+    do neskroceného, úředně-archaického, moderního, sebestředného a pasivně
+    agresivního internetového bizáru se skutečnými punchlines.
   icon_small: assets/icon.svg
   icon_large: assets/icon.svg
 policy:
