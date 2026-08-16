@@ -1,38 +1,59 @@
 ---
 name: create-czech-brat-lyrics-video
-description: Create square Brat-style Czech lyrics/text videos with selectable Czech TTS, hard word-synchronized dynamic reflow, sentence-safe grouping, guaranteed source-word coverage, generous whitespace, and a soft low-resolution Arial-like texture. Prefer Edge neural voices, but fall back to local macOS Czech voices or eSpeak when online TTS is unavailable.
+description: Create square Brat-style Czech lyrics/text videos with selectable Czech TTS, hard word-synchronized dynamic reflow, sentence-safe grouping, guaranteed source-word coverage, generous whitespace, and a soft low-resolution Arial-like texture. Preserve the user's full voice choice set even in Codex Online Sessions; prefer Edge neural voices, but use local Czech fallbacks only as a technical render fallback when online TTS is unavailable.
 ---
 
 # Create Czech Brat Lyrics Video
 
 Produce a finished MP4 from user-provided text with the bundled generators. Do not fail merely because Edge TTS or network access is unavailable when a local Czech TTS backend can render the video.
 
+## Voice selection is always preserved
+
+The voice picker and the render backend are two different things.
+
+Always keep the user's normal voice choices available, including in Codex Online Sessions:
+
+- Vlasta (`cs-CZ-VlastaNeural`)
+- Antonín (`cs-CZ-AntoninNeural`)
+- custom Edge TTS voice ID
+- offline female
+- offline male
+- `espeak` / `espeak:cs`
+- `say:<voice>` when macOS local voices are relevant
+
+Do not remove Vlasta, Antonín, or custom Edge voices merely because the current runtime might not have network access. Do not collapse the UI into a single `espeak` option. The user chooses the desired voice first; backend fallback is handled only during rendering.
+
+If the user selected Vlasta or Antonín, that remains the **requested voice** even if the actual runtime must use an offline Czech fallback. Report both `requested_voice` and `actual_voice`/`tts_backend` separately. Never silently reinterpret `Vlasta` as `espeak` at selection time.
+
 ## Ask for creative choices first
 
 If the user has not already specified both choices, pause before rendering and ask one compact question covering:
 
 1. **Voice:**
-   - Vlasta (`cs-CZ-VlastaNeural`, female Edge neural; preferred when available),
-   - Antonín (`cs-CZ-AntoninNeural`, male Edge neural; preferred when available),
+   - Vlasta (`cs-CZ-VlastaNeural`, female Edge neural),
+   - Antonín (`cs-CZ-AntoninNeural`, male Edge neural),
    - a custom Edge TTS voice ID,
-   - `offline female` / macOS Czech female voice when available,
-   - `offline male` / macOS Czech male voice when available,
-   - `espeak` / `espeak:cs` for the portable Czech offline fallback.
+   - `offline female`,
+   - `offline male`,
+   - `espeak` / `espeak:cs`,
+   - `say:<voice>` on macOS.
 2. **Background:** white, classic Brat green (`#8ACE00`), or a custom hex color.
 
 Never silently select Antonín or white. Only choose on the user's behalf when the user explicitly says to choose freely. Default text color to black unless contrast or the user requires otherwise.
 
-If the user explicitly selected Vlasta or Antonín and that exact Edge voice cannot be reached, preserve their requested gender where possible: on macOS prefer a Czech system voice of the corresponding gender, otherwise fall back to Czech eSpeak. State the actual backend/voice in the final result; never pretend the fallback is the neural voice.
+## TTS backend priority and Codex Online behavior
 
-## TTS backend priority and fallback contract
+After the user has chosen a voice, render using this order unless a specific offline backend was explicitly requested:
 
-Use this order unless the user explicitly requests a specific offline backend:
+1. **Edge TTS neural** — use the exact requested Edge voice (`cs-CZ-VlastaNeural`, `cs-CZ-AntoninNeural`, or custom ID). This remains the preferred path and provides real WordBoundary timing.
+2. **macOS `say`** — only when locally available. For a requested female voice prefer Czech Zuzana/Iveta; for male prefer Tomas when installed.
+3. **eSpeak NG / eSpeak** — use Czech `cs` as the portable offline fallback.
 
-1. **Edge TTS neural** — `cs-CZ-VlastaNeural`, `cs-CZ-AntoninNeural`, or the supplied Edge voice ID. This is the preferred path because it supplies real word boundaries.
-2. **macOS `say`** — if running on macOS and a Czech system voice is installed. Prefer `Zuzana`/`Iveta` for a requested female voice and `Tomas` for a requested male voice when present.
-3. **eSpeak NG / eSpeak** — use Czech `cs`; portable offline last resort.
+In Codex Online Sessions, assume that outbound network/package installation may be unavailable. That must not change the available voice choices. Attempt the requested Edge path when possible; if it fails for network, TLS, service, or dependency reasons, continue with a local Czech fallback if one exists.
 
-A network failure, TLS failure, Edge service failure, missing `edge-tts`, or inability to install it is not by itself a reason to stop. Try the next locally available backend.
+A network failure, TLS failure, Edge service failure, missing `edge-tts`, or inability to install it is not by itself a reason to stop the video task.
+
+If no usable Czech TTS backend exists at all, state that rendering cannot complete in that runtime. Do not pretend a non-Czech or nonexistent voice succeeded.
 
 The online generator is:
 
@@ -60,8 +81,9 @@ Offline TTS engines generally do not expose Edge-style WordBoundary events. The 
 
 1. Use the user's wording verbatim unless they explicitly request proofreading or pair this skill with a rewrite skill.
 2. Resolve this skill directory by matching the `name` frontmatter; do not assume its reconciled folder name.
-3. Confirm `ffmpeg`, `ffprobe`, Python, and available TTS backends (`say`, `espeak-ng`, `espeak`).
-4. Prefer task-local dependencies for the neural path:
+3. Preserve the selected voice exactly as `requested_voice` before probing backend availability.
+4. Confirm `ffmpeg`, `ffprobe`, Python, and available TTS backends (`say`, `espeak-ng`, `espeak`).
+5. Prefer task-local dependencies for the neural path:
 
    ```bash
    python3 -m pip install --target .brat-video-deps edge-tts pillow
@@ -69,7 +91,7 @@ Offline TTS engines generally do not expose Edge-style WordBoundary events. The 
 
    If network/package installation fails, continue to the offline path if Pillow and a supported local TTS engine are already available.
 
-5. Preferred Edge render:
+6. Preferred Edge render:
 
    ```bash
    PYTHONPATH=.brat-video-deps python3 \
@@ -82,43 +104,44 @@ Offline TTS engines generally do not expose Edge-style WordBoundary events. The 
      --output /absolute/path/brat-video.mp4
    ```
 
-6. If the Edge path fails for network/service/dependency reasons, render offline instead of stopping:
+7. If the Edge path fails for network/service/dependency reasons, render offline instead of stopping:
 
    ```bash
    PYTHONPATH=.brat-video-deps python3 \
      /resolved/skill/path/scripts/create_brat_lyrics_video_offline.py \
      --text "UŽIVATELŮV TEXT" \
-     --voice espeak:cs \
+     --voice "Vlasta" \
+     --backend auto \
      --background white \
      --text-color black \
      --manifest /absolute/path/video-manifest.json \
      --output /absolute/path/brat-video.mp4
    ```
 
-   For automatic local selection, pass the originally requested voice name/ID and leave `--backend auto`; the script prefers an installed Czech macOS `say` voice and otherwise eSpeak.
+   Pass the originally selected semantic voice name/ID into the offline generator. Let `--backend auto` choose the best locally available Czech fallback while preserving the requested voice separately in the manifest.
 
-7. Adjust delivery only when requested, using `--rate=-8%` and `--pitch=-2Hz` style values. The offline generator maps percentage rate to an approximate local-engine speaking rate; pitch support depends on the backend.
-8. Inspect the manifest before visual QA:
+8. Adjust delivery only when requested, using `--rate=-8%` and `--pitch=-2Hz` style values. The offline generator maps percentage rate to an approximate local-engine speaking rate; pitch support depends on the backend.
+9. Inspect the manifest before visual QA:
    - require `source_words == displayed_words`;
    - require the ordered `words[].shown` sequence to equal the whitespace-tokenized source exactly;
    - require every normal set to end at sentence punctuation;
    - reject any omitted, duplicated, or reordered token;
-   - record `tts_backend`, `actual_voice`, and `timing_mode` for offline renders.
-9. Inspect a contact sheet and at least one original-resolution frame. Check every sentence-ending state, whitespace, legibility, punctuation, chosen colors, and low-resolution texture.
-10. Validate with `ffprobe`: H.264 video, AAC audio, 1080 × 1080, 30 fps, and duration matching the synthesized audio.
-11. Save the MP4 persistently and return its download link.
+   - record `requested_voice`, `tts_backend`, `actual_voice`, and `timing_mode` for fallback renders.
+10. Inspect a contact sheet and at least one original-resolution frame. Check every sentence-ending state, whitespace, legibility, punctuation, chosen colors, and low-resolution texture.
+11. Validate with `ffprobe`: H.264 video, AAC audio, 1080 × 1080, 30 fps, and duration matching the synthesized audio.
+12. Save the MP4 persistently and return its download link.
 
 ## Generator controls
 
 ```bash
-# Preferred neural voices
+# Normal selectable voices — keep these choices available regardless of runtime
 --voice cs-CZ-AntoninNeural
 --voice cs-CZ-VlastaNeural
 --voice <custom Edge TTS voice ID>
 
-# Offline fallback examples
---voice espeak:cs
+# Explicit offline choices
 --voice offline
+--voice espeak:cs
 --voice say:Zuzana
 --voice say:Tomas
 --backend auto
@@ -141,10 +164,12 @@ Offline TTS engines generally do not expose Edge-style WordBoundary events. The 
 
 Reject and regenerate the output if any of these occur:
 
+- the normal voice choices were hidden or removed merely because the runtime is Codex Online or offline;
+- `requested_voice` was silently changed to the fallback backend name;
 - a sentence resets before sentence-ending punctuation without an explicitly requested clause split;
 - any source word is missing, duplicated, reordered, spoken but not displayed, or displayed but not represented in the source;
 - the selected background differs from the user's choice;
-- an Edge voice is claimed even though an offline fallback actually rendered the audio;
+- an Edge voice is claimed as the actual rendered voice when an offline fallback rendered the audio;
 - the actual TTS backend/voice is omitted from reporting after a fallback;
 - text animates between layouts instead of changing instantly;
 - a partial word or individual character appears;
