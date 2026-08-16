@@ -1,76 +1,90 @@
 ---
 name: create-czech-brat-lyrics-video
-description: Create square Brat-style lyrics/text videos with Czech neural text-to-speech, hard word-synchronized dynamic reflow, generous whitespace, and a soft low-resolution Arial-like look. Use when the user requests a Brat lyrics video, Brat text-generator video, 1:1 kinetic typography, Czech TTS captions, or asks to reproduce the specific white-background layout that recomputes instantly after every spoken word without transitions.
+description: Create square Brat-style Czech lyrics/text videos with selectable neural voice and background, hard word-synchronized dynamic reflow, sentence-safe grouping, guaranteed source-word coverage, generous whitespace, and a soft low-resolution Arial-like texture. Use for Brat lyrics videos, Brat text-generator videos, 1:1 kinetic typography, Czech TTS captions, white or classic Brat-green variants, or videos that must instantly recompute the full layout after every spoken word without transitions.
 ---
 
 # Create Czech Brat Lyrics Video
 
 Produce a finished MP4 from user-provided text with the bundled generator.
 
-## Preserve these defaults
+## Ask for creative choices first
+
+If the user has not already specified both choices, pause before rendering and ask one compact question covering:
+
+1. **Voice:** Antonín (`cs-CZ-AntoninNeural`, male), Vlasta (`cs-CZ-VlastaNeural`, female), or a custom Edge TTS voice ID.
+2. **Background:** white, classic Brat green (`#8ACE00`), or a custom hex color.
+
+Never silently select Antonín or white. Only choose on the user's behalf when the user explicitly says to choose freely. Default text color to black unless contrast or the user requires otherwise.
+
+## Preserve the format
 
 - Use a 1:1 canvas, 1080 × 1080, 30 fps.
-- Keep the background white and the text black.
-- Preserve natural capitalization and punctuation from the input.
-- Use Czech neural TTS; default to the male `cs-CZ-AntoninNeural` voice.
-- Reveal complete words only. At each spoken-word boundary, hard-cut to a newly recomputed layout of the entire current text set.
-- Never add fades, tweens, crossfades, motion blur, colored emphasis, black scenes, or character-by-character typing unless explicitly requested.
+- Preserve natural capitalization, punctuation, and every source token.
+- Reveal complete words only.
+- At each spoken-word boundary, hard-cut to a newly recomputed layout of the full current sentence.
+- Keep a sentence together until `.`, `!`, `?`, or `…`. Never reset merely because a word count was reached.
+- Add optional clause splitting only when explicitly needed for an unusually long sentence; split only after a comma, colon, or semicolon.
+- Never add fades, tweens, crossfades, motion blur, colored word emphasis, black scenes, or character-by-character typing unless requested.
 - Fit a narrow sans-serif block inside roughly 74% of the canvas width and 68% of its height, leaving generous whitespace.
-- Center the block, left-align its lines, stretch glyphs slightly, then downsample and upscale the finished frame for a soft low-resolution Brat texture.
+- Center the block, left-align its lines, stretch glyphs slightly, then downsample and upscale the finished frame for the soft low-resolution Brat texture.
 
 ## Workflow
 
-1. Use the user's wording verbatim unless they explicitly request proofreading. Do not silently rewrite dark, poetic, or unusual phrasing.
-2. Confirm `ffmpeg`, `ffprobe`, and Python are available.
-3. Install missing Python dependencies into a task-local directory, never globally:
+1. Use the user's wording verbatim unless they explicitly request proofreading or pair this skill with a rewrite skill.
+2. Resolve this skill directory by matching the `name` frontmatter; do not assume its reconciled folder name.
+3. Confirm `ffmpeg`, `ffprobe`, and Python are available.
+4. Install missing Python dependencies into a task-local directory, never globally:
 
    ```bash
    python3 -m pip install --target .brat-video-deps edge-tts pillow
    ```
 
-4. Run the bundled script with that directory on `PYTHONPATH`:
+5. Run the bundled generator with an explicit voice, explicit background, and a manifest:
 
    ```bash
    PYTHONPATH=.brat-video-deps python3 \
-     /root/.codex/skills/remote-skills/create-czech-brat-lyrics-video/scripts/create_brat_lyrics_video.py \
+     /resolved/skill/path/scripts/create_brat_lyrics_video.py \
      --text "UŽIVATELŮV TEXT" \
+     --voice cs-CZ-VlastaNeural \
+     --background brat-green \
+     --text-color black \
+     --manifest /absolute/path/video-manifest.json \
      --output /absolute/path/brat-video.mp4
    ```
 
-   After installation reconciliation, resolve the skill directory by matching the `name` frontmatter if the literal path above has changed.
+6. Adjust delivery only when requested, using `--rate=-8%` and `--pitch=-2Hz` style values.
+7. Inspect the manifest before visual QA:
+   - require `source_words == displayed_words`;
+   - require the ordered `words[].shown` sequence to equal the whitespace-tokenized source exactly;
+   - require every normal set to end at sentence punctuation;
+   - reject any omitted, duplicated, or reordered token.
+8. Inspect a contact sheet and at least one original-resolution frame. Check every sentence-ending state, whitespace, legibility, punctuation, chosen colors, and low-resolution texture.
+9. Validate with `ffprobe`: H.264 video, AAC audio, 1080 × 1080, 30 fps, and duration matching the synthesized audio.
+10. Save the MP4 persistently and return its download link.
 
-5. For a female Czech voice, pass `--voice cs-CZ-VlastaNeural`. Adjust delivery only when requested, using `--rate=-8%` style values.
-6. Inspect a contact sheet and at least one original-resolution frame. Verify whitespace, legibility, punctuation, and the low-resolution texture.
-7. Validate the encoded file with `ffprobe`: H.264 video, AAC audio, 1080 × 1080, 30 fps, and duration matching the synthesized audio.
-8. Save the user-facing MP4 persistently and return its download link.
-
-## Generator behavior
-
-The script automatically:
-
-- obtains word-boundary timings from Czech TTS;
-- groups text at sentence punctuation, commas, and a configurable maximum word count;
-- recomputes optimal line breaks and font size after every complete word;
-- keeps each typographic state perfectly static until the next word;
-- renders a slightly stretched narrow sans-serif face;
-- rasterizes at reduced resolution and enlarges it to create the Brat softness;
-- muxes the voice into an H.264/AAC MP4.
-
-Useful controls:
+## Generator controls
 
 ```bash
---max-words 6       # Maximum words in one accumulating text set
---raster-size 360   # Lower means rougher/softer low-res texture
---width-ratio 0.74  # Smaller means more horizontal whitespace
---height-ratio 0.68 # Smaller means more vertical whitespace
---font /path/font   # Override the auto-detected narrow sans font
+--voice cs-CZ-AntoninNeural # Required; never implicit
+--voice cs-CZ-VlastaNeural  # Required; never implicit
+--background white          # Required
+--background brat-green     # Classic #8ACE00
+--background '#RRGGBB'      # Custom background
+--text-color black          # black, white, or #RRGGBB
+--max-words 0               # 0 keeps full sentences; positive values split only at safe clause punctuation
+--raster-size 360           # Lower means rougher/softer texture
+--width-ratio 0.74          # Smaller means more horizontal whitespace
+--height-ratio 0.68         # Smaller means more vertical whitespace
+--font /path/font           # Override the detected narrow sans font
 ```
 
 ## Quality gate
 
 Reject and regenerate the output if any of these occur:
 
-- any black or colored background appears;
+- a sentence resets before sentence-ending punctuation without an explicitly requested clause split;
+- any source word is missing, duplicated, reordered, spoken but not displayed, or displayed but not represented in the source;
+- the selected voice or background differs from the user's choice;
 - text animates between layouts instead of changing instantly;
 - a partial word or individual character appears;
 - only the new word moves while the rest of the block stays fixed;
