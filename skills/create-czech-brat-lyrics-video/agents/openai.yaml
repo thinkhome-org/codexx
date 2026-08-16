@@ -1,10 +1,12 @@
 interface:
   display_name: České Brat Lyrics Video
-  short_description: Brat video s neural i offline českým TTS
-  default_prompt: Použij $create-czech-brat-lyrics-video, nejdřív se mě zeptej na
-    hlas a pozadí a potom vytvoř úplné video beze ztracených slov. Preferuj Edge
-    neural hlas, ale při nedostupné síti automaticky použij český macOS say nebo
-    eSpeak fallback a uveď skutečně použitý backend.
+  short_description: Brat video s volbou hlasu, backendu a dělení textu
+  default_prompt: Použij $create-czech-brat-lyrics-video. Pokud chybí volby, zeptej se
+    společně na hlas, pozadí a dělení textu. U hlasů stručně vysvětli kompatibilitu
+    Edge neural vs macOS say vs eSpeak a pravděpodobnost fungování v Codex Online.
+    Nabídni legacy (doporučeno, původní krátké bloky), sentence (celé věty) a clause
+    (bezpečný kompromis). Zachovej uživatelovu volbu hlasu i při fallbacku a vždy
+    uveď skutečně použitý backend.
   icon_small: assets/icon.svg
   icon_large: assets/icon.svg
 policy:
