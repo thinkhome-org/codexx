@@ -1,15 +1,13 @@
 interface:
-  display_name: Neskrocený archaický bizár
-  short_description: Agresivně vtipný úředně-archaický přepis
-  default_prompt: Použij $rewrite-czech-legal-archaic-bizarre a zmutuj tento text
-    do neskroceného, úředně-archaického, moderního, sebestředného a pasivně
-    agresivního internetového bizáru se skutečnými punchlines.
-  icon_small: assets/icon.svg
-  icon_large: assets/icon.svg
+  display_name: "Maximalistický archaický bizár"
+  short_description: "Lyrický úřednický bizár na maximum"
+  default_prompt: "Použij $rewrite-czech-legal-archaic-bizarre a zmutuj tento text do maximálně úředního, hustě staročeského, lyrického, slangového, agresivního a sebezesměšňujícího bizáru s barokní interpunkcí a tvrdou pointou."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
 policy:
   products:
-  - chatgpt
-  - codex
-  - api
-  - atlas
+  - "chatgpt"
+  - "codex"
+  - "api"
+  - "atlas"
   allow_implicit_invocation: true
