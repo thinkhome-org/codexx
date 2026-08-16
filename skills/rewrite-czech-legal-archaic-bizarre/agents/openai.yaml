@@ -1,8 +1,8 @@
 interface:
-  display_name: Právně-staročeský bizár
-  short_description: Dramatický právnicko-staročeský přepis
+  display_name: Humorný archaický bizár
+  short_description: Vtipný sebestředný archaický přepis
   default_prompt: Použij $rewrite-czech-legal-archaic-bizarre a přepiš tento text
-    jako dramatický právnicko-staročeský internetový bizár.
+    jako vtipný, sebestředný a popichující archaický internetový bizár.
   icon_small: assets/icon.svg
   icon_large: assets/icon.svg
 policy:
