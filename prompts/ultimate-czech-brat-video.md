@@ -21,13 +21,25 @@ Podporovaný stručný formát:
 
 ```text
 Téma: [téma videa]
-Hlas: [Antonín | Vlasta | vlastní Edge TTS ID]
+Hlas: [Vlasta | Antonín | vlastní Edge TTS ID | offline female | offline male | espeak | espeak:cs | say:<voice>]
 Pozadí: [white | brat-green | #RRGGBB]
 Délka: [krátká | střední | dlouhá | vlastní požadavek]
 Doplňující pokyny: [volitelné]
 ```
 
 Uživatel může napsat jen `Téma: ...`. Pokud téma chybí, zeptej se pouze na téma. Pokud chybí hlas nebo pozadí, polož jednu společnou krátkou otázku na obě volby, jak vyžaduje video skill; nikdy automaticky nevybírej Antonína ani bílé pozadí. Pokud uživatel výslovně napíše, že volbu nechává na tobě, vyber vhodnou kombinaci sám.
+
+### Význam hlasových voleb a fallback
+
+- `Vlasta` = preferuj `cs-CZ-VlastaNeural` přes Edge TTS.
+- `Antonín` = preferuj `cs-CZ-AntoninNeural` přes Edge TTS.
+- vlastní Edge TTS ID = použij přesně uvedený hlas, pokud je dosažitelný.
+- `offline female` = preferuj lokální český ženský hlas, typicky macOS `say` Zuzana/Iveta; pokud není, použij český eSpeak.
+- `offline male` = preferuj lokální český mužský hlas, typicky macOS `say` Tomas; pokud není, použij český eSpeak.
+- `espeak` nebo `espeak:cs` = explicitně použij český eSpeak/eSpeak NG.
+- `say:<voice>` = explicitně použij konkrétní lokální macOS hlas.
+
+Když uživatel zvolí Vlastu, Antonína nebo vlastní Edge hlas a online Edge TTS selže kvůli síti, TLS, službě nebo nedostupné instalaci, **nezastavuj výrobu videa**, pokud existuje český lokální TTS backend. Použij fallback pořadí definované ve video skillu: Edge → macOS `say` → eSpeak. U fallbacku vždy přiznej skutečně použitý backend/hlas; nikdy offline hlas nevydávej za Vlastu či Antonína.
 
 ## Povinný výrobní řetězec
 
@@ -72,7 +84,9 @@ Nežádej uživatele o schválení meziverze, pokud o něj výslovně nepožáda
 
 ### 4. Rovnou vytvoř finální video
 
-Použij `$create-czech-brat-lyrics-video` a jeho přiložený generátor. Nezastavuj se u návodu, ukázkového příkazu, návrhu scénáře ani tvrzení, že video „lze vytvořit“. Skutečně vytvoř výsledný MP4 soubor.
+Použij `$create-czech-brat-lyrics-video` a jeho přiložené generátory. Nezastavuj se u návodu, ukázkového příkazu, návrhu scénáře ani tvrzení, že video „lze vytvořit“. Skutečně vytvoř výsledný MP4 soubor.
+
+Preferuj neural Edge generátor, pokud je dostupný. Pokud Edge TTS není dosažitelný, automaticky použij offline fallback generátor podle video skillu. Samotný výpadek sítě není důvodem odevzdat pouze scénář.
 
 Souhlas uživatele s použitím tohoto master promptu zahrnuje použití potřebných externích služeb, TTS, API a nástrojů nutných k vytvoření videa v rozsahu tohoto úkolu. Nezahrnuje veřejné publikování videa ani jiné nesouvisející externí akce.
 
@@ -81,14 +95,17 @@ Souhlas uživatele s použitím tohoto master promptu zahrnuje použití potřeb
 Před odevzdáním ověř všechna pravidla video skillu a zejména:
 
 - `source_words == displayed_words`;
-- každé slovo závazného scénáře je přesně jednou vysloveno a přesně jednou obsaženo v titulcích;
+- každé slovo závazného scénáře je přesně jednou obsaženo v titulcích;
+- u Edge TTS ověř skutečné WordBoundary časování;
+- u offline TTS přiznej `timing_mode: estimated-from-offline-audio` a ověř přesné pokrytí zdrojových tokenů;
 - žádné slovo nezmizelo, nebylo zdvojeno ani přesunuto;
 - věta se bez výslovného důvodu nepřerušila uprostřed;
 - obraz má 1080 × 1080, 30 fps, H.264 video a AAC audio;
-- hlas a pozadí odpovídají zvolené variantě;
+- pozadí odpovídá zvolené variantě;
+- reportovaný hlas/backend odpovídá tomu, co bylo skutečně použito;
 - video obsahuje zvuk i obraz a jeho délka odpovídá TTS.
 
-Při jakémkoli nesouladu video oprav a zkontroluj znovu. Neodevzdávej částečný nebo neověřený výsledek.
+Při jakémkoli nesouladu video oprav a zkontroluj znovu. Neodevzdávej částečný nebo neověřený výsledek, pokud je v prostředí funkční některý podporovaný český TTS backend.
 
 ## Výstup
 
@@ -96,17 +113,24 @@ Odevzdej:
 
 1. odkaz ke stažení hotového MP4;
 2. přesný finální scénář použitý ve videu;
-3. jednu krátkou řádku s použitým hlasem, pozadím a výsledkem kontroly slov.
+3. jednu krátkou řádku s požadovaným hlasem, skutečně použitým TTS backendem/hlasem, pozadím, režimem časování a výsledkem kontroly slov.
 
 Nevypisuj interní mezikroky, pracovní draft ani dlouhé vysvětlování.
 
 ## Nejkratší použití
 
-Do nového chatu vlož odkaz na tento soubor a za něj napiš například:
-
 ```text
 Téma: destilovaná voda
 Hlas: Vlasta
 Pozadí: brat-green
+Délka: dlouhá
+```
+
+Explicitní offline varianta:
+
+```text
+Téma: destilovaná voda
+Hlas: espeak:cs
+Pozadí: white
 Délka: dlouhá
 ```
