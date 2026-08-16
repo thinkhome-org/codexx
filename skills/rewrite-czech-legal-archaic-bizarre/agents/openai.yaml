@@ -1,0 +1,14 @@
+interface:
+  display_name: Právně-staročeský bizár
+  short_description: Dramatický právnicko-staročeský přepis
+  default_prompt: Použij $rewrite-czech-legal-archaic-bizarre a přepiš tento text
+    jako dramatický právnicko-staročeský internetový bizár.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true
